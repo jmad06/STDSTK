@@ -61,6 +61,62 @@ def _outliers_zscore(serie, umbral=3):
         return "N/D", "N/D"
 
 
+def _etiqueta_sesgo(skewness):
+    """
+    Clasifica el coeficiente de asimetría en una etiqueta legible, usando
+    los mismos umbrales del checklist de interpretación (|s|<=0.5 simétrica,
+    0.5-1 moderado, >1 fuerte), incluyendo la dirección del sesgo.
+    """
+    try:
+        s = float(skewness)
+    except (TypeError, ValueError):
+        return "N/D"
+    direccion = "derecha" if s > 0 else "izquierda"
+    if abs(s) <= 0.5:
+        return "Simétrica"
+    if abs(s) <= 1:
+        return f"Moderado ({direccion})"
+    return f"Fuerte ({direccion})"
+
+
+def _categoria_outliers(pct_outliers_iqr):
+    """Clasifica el % de outliers IQR en Bajo (<1%), Medio (1-5%) o Alto (>5%)."""
+    try:
+        p = float(pct_outliers_iqr)
+    except (TypeError, ValueError):
+        return None
+    if p < 1:
+        return "Bajo"
+    if p <= 5:
+        return "Medio"
+    return "Alto"
+
+
+# Matriz de decisión Media/Mediana: la media solo se recomienda cuando la
+# distribución es simétrica y casi no hay outliers; ante sesgo relevante u
+# outliers relevantes, la mediana es más robusta. Los casos mixtos (una
+# señal buena y otra regular) quedan como "Indiferente".
+_MATRIZ_MEDIDA_RECOMENDADA = {
+    "Simétrica": {"Bajo": "Media", "Medio": "Indiferente", "Alto": "Mediana"},
+    "Moderado": {"Bajo": "Indiferente", "Medio": "Mediana", "Alto": "Mediana"},
+    "Fuerte": {"Bajo": "Mediana", "Medio": "Mediana", "Alto": "Mediana"},
+}
+
+
+def _medida_recomendada(etiqueta_sesgo, pct_outliers_iqr):
+    """
+    Decide si es más recomendable usar Media o Mediana para una variable,
+    combinando la etiqueta de sesgo (Skewness) y el % de outliers IQR según
+    la matriz de decisión acordada. Devuelve 'N/D' si falta algún insumo.
+    """
+    categoria_outliers = _categoria_outliers(pct_outliers_iqr)
+    if etiqueta_sesgo == "N/D" or categoria_outliers is None:
+        return "N/D"
+
+    categoria_sesgo = etiqueta_sesgo.split(" ")[0]  # "Simétrica" / "Moderado" / "Fuerte"
+    return _MATRIZ_MEDIDA_RECOMENDADA.get(categoria_sesgo, {}).get(categoria_outliers, "N/D")
+
+
 def _test_normalidad(serie, max_muestra=5000, semilla=42):
     """
     Ejecuta el test de normalidad Shapiro-Wilk sobre una serie numérica.
@@ -106,6 +162,7 @@ def calcular_descriptivo_numericas(df, columnas_numericas):
     columnas_reporte = [
         "Columna", "Media", "Mediana (P50)", "Moda", "Mínimo", "Máximo",
         "Q1 (P25)", "Q3 (P75)", "IQR", "Desv. Estándar", "Skewness",
+        "Sesgo (Etiqueta)", "Medida Recomendada",
         "Límite Inferior IQR", "Límite Superior IQR", "Outliers IQR (#)", "Outliers IQR (%)",
         "Outliers Z-score (#)", "Outliers Z-score (%)",
         "Shapiro N Evaluado", "Shapiro-Wilk Stat", "Shapiro-Wilk p-valor", "¿Distribución Normal? (p>0.05)",
@@ -143,6 +200,11 @@ def calcular_descriptivo_numericas(df, columnas_numericas):
             fila["Límite Superior IQR"] = limite_sup
             fila["Outliers IQR (#)"] = n_out_iqr
             fila["Outliers IQR (%)"] = pct_out_iqr
+
+            # Sesgo y recomendación Media/Mediana (usa Skewness + Outliers IQR %)
+            etiqueta_sesgo = _etiqueta_sesgo(fila["Skewness"])
+            fila["Sesgo (Etiqueta)"] = etiqueta_sesgo
+            fila["Medida Recomendada"] = _medida_recomendada(etiqueta_sesgo, pct_out_iqr)
 
             # Outliers - método Z-score
             n_out_z, pct_out_z = _outliers_zscore(serie)

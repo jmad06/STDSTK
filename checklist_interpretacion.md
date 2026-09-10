@@ -33,6 +33,23 @@ Guía de referencia para leer el Excel sin tener que recordar la teoría cada ve
 > Skewness + W. Si ambos están en rango aceptable, trátala como
 > aproximadamente normal para fines prácticos.
 
+### 3.1 Media vs. Mediana (columnas `Sesgo (Etiqueta)` y `Medida Recomendada`)
+
+Combina la etiqueta de sesgo (Skewness) con la categoría de Outliers IQR (%)
+para recomendar qué medida de tendencia central es más representativa:
+
+| Sesgo \ Outliers IQR | Bajo (<1%) | Medio (1-5%) | Alto (>5%) |
+|---|---|---|---|
+| Simétrica (\|s\|≤0.5) | **Media** | Indiferente | Mediana |
+| Moderado (0.5<\|s\|≤1) | Indiferente | Mediana | Mediana |
+| Fuerte (\|s\|>1) | Mediana | Mediana | Mediana |
+
+La media solo se recomienda cuando la distribución es simétrica y casi no
+hay valores extremos (usa toda la información, es más eficiente). En cuanto
+aparece sesgo relevante o outliers relevantes, la mediana es más robusta
+porque no se distorsiona con esos valores. "Indiferente" marca los casos
+mixtos, donde una señal es buena y la otra regular.
+
 ## 4. Outliers (pestaña `2_Desc_Numericas`)
 
 | Métrica | ✅ Aceptable | ⚠️ Revisar | 🔴 Alerta |

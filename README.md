@@ -244,6 +244,8 @@ ignoradas, para que un ID único no impida detectar duplicados de negocio):
 | Q1 (P25), Q3 (P75), IQR | Cuartiles y rango intercuartílico |
 | Desv. Estándar | Dispersión de los datos |
 | Skewness | Coeficiente de asimetría |
+| Sesgo (Etiqueta) | Simétrica / Moderado (dirección) / Fuerte (dirección), según Skewness |
+| Medida Recomendada | Media, Mediana o Indiferente — combina Sesgo (Etiqueta) y Outliers IQR (%), ver sección 5.1 |
 | Límite Inferior/Superior IQR | Umbrales `Q1 - 1.5×IQR` y `Q3 + 1.5×IQR` |
 | Outliers IQR (#) / (%) | Valores fuera de esos límites (método robusto, recomendado por defecto) |
 | Outliers Z-score (#) / (%) | Valores con `\|z\| > 3` desviaciones estándar |
@@ -260,6 +262,22 @@ ignoradas, para que un ID único no impida detectar duplicados de negocio):
 >   sensible) con más de ~5000 datos; por eso se muestrea automáticamente.
 >   Un p-valor bajo con muestras muy grandes no siempre implica una
 >   desviación práctica relevante de la normalidad.
+
+#### 5.1 Media vs. Mediana
+
+Para cada variable numérica se calcula una recomendación sobre qué medida de
+tendencia central usar, combinando el sesgo (Skewness) con el % de outliers
+IQR:
+
+| Sesgo \ Outliers IQR | Bajo (<1%) | Medio (1-5%) | Alto (>5%) |
+|---|---|---|---|
+| Simétrica (\|s\|≤0.5) | Media | Indiferente | Mediana |
+| Moderado (0.5<\|s\|≤1) | Indiferente | Mediana | Mediana |
+| Fuerte (\|s\|>1) | Mediana | Mediana | Mediana |
+
+La media solo se recomienda cuando la distribución es simétrica y casi no
+hay outliers; en cualquier otro caso la mediana es más robusta. "Indiferente"
+marca los casos mixtos (una señal buena, la otra regular).
 
 **Pestaña `3_Desc_Categoricas`** (incluye nominal + ordinal + binaria):
 
