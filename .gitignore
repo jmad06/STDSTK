@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+
+# Outputs generados al ejecutar la herramienta (reportes y configuraciones
+# de tipos de columna guardadas para un dataset concreto del usuario)
+*.xlsx
+config_tipos*.json
